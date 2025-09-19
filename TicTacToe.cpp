@@ -459,11 +459,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 		redBrush = CreateSolidBrush(RGB(255, 0, 0));		// 빨간 브러쉬 생성
 		greenBrush = CreateSolidBrush(RGB(0, 255, 0));		// 초록 브러쉬 생성
 
-		board.SetCrossPen(greenPen);		// X 마커 펜 지정
-		board.SetCrossBrush(greenBrush);	// X 마커 브러쉬 지정
+		board.SetCrossPen(redPen);		// X 마커 펜 지정
+		board.SetCrossBrush(redBrush);	// X 마커 브러쉬 지정
 
-		board.SetCirclePen(redPen);			// O 마커 펜 지정
-		board.SetCircleBrush(redBrush);		// O 마커 브러쉬 지정
+		board.SetCirclePen(greenPen);			// O 마커 펜 지정
+		board.SetCircleBrush(greenBrush);		// O 마커 브러쉬 지정
 
 		nowPen = redPen;		// 선 플레이어의 펜을 빨간 펜으로 지정
 		return 0;
