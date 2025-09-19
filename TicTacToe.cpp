@@ -1,5 +1,4 @@
 #include <windows.h>
-#include <string>
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 HINSTANCE g_hInst;
