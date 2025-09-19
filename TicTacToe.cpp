@@ -48,44 +48,44 @@ enum Marker { NONE, CROSS, CIRCLE };
 class Board
 {
 private:
+	// 절대 상수 필드
+	static const LPCTSTR basicToolTip;		// 기본 텍스트
+	static const LPCTSTR crossWinText;		// X 승리 텍스트
+	static const LPCTSTR circleWinText;		// O 승리 텍스트
+	static const LPCTSTR drawText;			// 무승부 텍스트
+	// Board 하단에 값 지정
+
 	// 상대 상수 필드
 	const POINT startPosition;	// 보드 그리는 위치
 	const int cellSize;			// 칸 크기
-	const int markerSize;		// 마커 크기
 	const int markerPadding;	// 칸과 마커 사이 공간
 
 	// 멤버 변수 필드
 	RECT cellRect[3][3];	// 보드 칸 RECT 좌표 저장용
+
 	Marker marker[3][3];	// 마커 상태 저장
 	RECT markerRect[3][3];	// 마커가 그려질 RECT 좌표 저장용
+
 	HPEN crossPen;			// X 마커 그릴 펜
 	HPEN circlePen;			// O 마커 그릴 펜
 	HPEN oldPen;			// 펜 교환용 변수
+
 	HBRUSH crossBrush;		// X 마커 그릴 브러쉬
 	HBRUSH circleBrush;		// O 마커 그릴 브러쉬
 	HBRUSH oldBrush;		// 브러쉬 교환용 변수
 
-	// 멤버 함수
-	// 마커 초기화
-	void ResetMarker()
-	{
-		for (int i = 0; i < 3; i++)
-		{
-			for (int j = 0; j < 3; j++)
-			{
-				marker[i][j] = Marker::NONE;
-			}
-		}
-	}
+	RECT textRect;			// 텍스트 출력 RECT
+	LPCTSTR nowText;		// 현재 텍스트
 
+	// 멤버 함수
 	// 보드 칸 RECT 계산
 	void CalCellRect()
 	{
-		for (int col = 0; col < 3; col++)
+		for (int row = 0; row < 3; row++)
 		{
-			for (int row = 0; row < 3; row++)
+			for (int col = 0; col < 3; col++)
 			{
-				cellRect[col][row] = {
+				cellRect[row][col] = {
 					startPosition.x + row * cellSize,
 					startPosition.y + col * cellSize,
 					startPosition.x + (row + 1) * cellSize,
@@ -98,11 +98,11 @@ private:
 	// 마커 RECT 계산
 	void CalMarkerRect()
 	{
-		for (int col = 0; col < 3; col++)
+		for (int row = 0; row < 3; row++)
 		{
-			for (int row = 0; row < 3; row++)
+			for (int col = 0; col < 3; col++)
 			{
-				markerRect[col][row] = {
+				markerRect[row][col] = {
 					startPosition.x + row * cellSize + markerPadding,
 					startPosition.y + col * cellSize + markerPadding,
 					startPosition.x + (row + 1) * cellSize - markerPadding,
@@ -115,11 +115,17 @@ private:
 	// 3*3 보드 그리기
 	void DrawBoard(HDC hdc)
 	{
-		for (int col = 0; col < 3; col++)
+		for (int row = 0; row < 3; row++)
 		{
-			for (int row = 0; row < 3; row++)
+			for (int col = 0; col < 3; col++)
 			{
-				Rectangle(hdc, cellRect[col][row].left, cellRect[col][row].top, cellRect[col][row].right, cellRect[col][row].bottom);
+				Rectangle(
+					hdc,
+					cellRect[row][col].left,
+					cellRect[row][col].top,
+					cellRect[row][col].right,
+					cellRect[row][col].bottom
+				);
 			}
 		}
 	}
@@ -159,27 +165,34 @@ private:
 	}
 
 	// X 마커 그리기
-	void DrawCrossMarker(HDC hdc, int col, int row)
+	void DrawCrossMarker(HDC hdc, int row, int col)
 	{
 		ChangePen(hdc, crossPen);
 		ChangeBrush(hdc, crossBrush);
 
-		MoveToEx(hdc, markerRect[col][row].left, markerRect[col][row].top, NULL);
-		LineTo(hdc, markerRect[col][row].right, markerRect[col][row].bottom);
-		MoveToEx(hdc, markerRect[col][row].right, markerRect[col][row].top, NULL);
-		LineTo(hdc, markerRect[col][row].left, markerRect[col][row].bottom);
+		MoveToEx(hdc,	markerRect[row][col].left,	markerRect[row][col].top, NULL);	// 우하향 대각선
+		LineTo(hdc,		markerRect[row][col].right,	markerRect[row][col].bottom);
+
+		MoveToEx(hdc,	markerRect[row][col].right,	markerRect[row][col].top, NULL);	// 좌하향 대각선
+		LineTo(hdc,		markerRect[row][col].left,	markerRect[row][col].bottom);
 
 		EndPen(hdc);
 		EndBrush(hdc);
 	}
 
 	// O 마커 그리기
-	void DrawCircleMarker(HDC hdc, int col, int row)
+	void DrawCircleMarker(HDC hdc, int row, int col)
 	{
 		ChangePen(hdc, circlePen);
 		ChangeBrush(hdc, circleBrush);
 
-		Ellipse(hdc, markerRect[col][row].left, markerRect[col][row].top, markerRect[col][row].right, markerRect[col][row].bottom);
+		Ellipse(
+			hdc,
+			markerRect[row][col].left,
+			markerRect[row][col].top,
+			markerRect[row][col].right,
+			markerRect[row][col].bottom
+		);
 
 		EndPen(hdc);
 		EndBrush(hdc);
@@ -188,14 +201,14 @@ private:
 	// 마커 그리기
 	void DrawMarkers(HDC hdc)
 	{
-		for (int col = 0; col < 3; col++)
+		for (int row = 0; row < 3; row++)
 		{
-			for (int row = 0; row < 3; row++)
+			for (int col = 0; col < 3; col++)
 			{
-				switch (marker[col][row])
+				switch (marker[row][col])	// 마커의 종류에 따라서 별개의 그리기 처리
 				{
-				case Marker::CROSS: DrawCrossMarker(hdc, col, row); break;
-				case Marker::CIRCLE: DrawCircleMarker(hdc, col, row); break;
+				case Marker::CROSS: DrawCrossMarker(hdc, row, col); break;
+				case Marker::CIRCLE: DrawCircleMarker(hdc, row, col); break;
 				}
 			}
 		}
@@ -204,24 +217,31 @@ private:
 	// 안내 텍스트 그리기
 	void DrawTip(HDC hdc)
 	{
-		RECT rt = { startPosition.x,startPosition.y - 30,500,startPosition.y };	// 텍스트 출력 범위 지정
-		DrawText(hdc, TEXT("이동: 방향키, 입력: 엔터, 종료: ESC"), -1, &rt, DT_LEFT);	// 안내 텍스트 출력
+		DrawText(hdc, nowText, -1, &textRect, DT_LEFT);	// 현재 텍스트 출력
 	}
 
 public:
 	// 생성자
 	Board(POINT _startPosition, int _cellSize) :
-		startPosition(_startPosition),
-		cellSize(_cellSize),
-		markerSize(_cellSize * 0.9),
-		markerPadding(_cellSize * 0.1)
-	{
+		startPosition(_startPosition),		// 시작위치 상수 초기화
+		cellSize(_cellSize),				// 칸 크기 상수 초기화
+		markerPadding(_cellSize * 0.1)		// 칸과 마커 사이의 여유공간 상수 초기화
+	{										// 칸 크기의 10%를 상하좌우에 여유공간으로 사용 => 실제 마커 사이즈 == 칸 크기의 80%
 		crossPen = NULL;
 		circlePen = NULL;
 		oldPen = NULL;
+
 		crossBrush = NULL;
 		circleBrush = NULL;
 		oldBrush = NULL;
+
+		textRect = {				// 텍스트 출력 범위 적당히 지정
+			startPosition.x,
+			startPosition.y - 30,
+			500,
+			startPosition.y 
+		};	
+		nowText = basicToolTip;		// 기본 텍스트 설정												
 
 		ResetMarker();
 		CalMarkerRect();
@@ -230,17 +250,83 @@ public:
 
 	void SetCrossPen(HPEN hPen) { crossPen = hPen; }	// X 마커 펜 지정
 	void SetCirclePen(HPEN hPen) { circlePen = hPen; }	// O 마커 펜 지정
-	void SetCrossBrush(HBRUSH hBrush) { crossBrush = hBrush; }	// X 마커 브러쉬 지정
+
+	void SetCrossBrush(HBRUSH hBrush) { crossBrush = hBrush; }		// X 마커 브러쉬 지정
 	void SetCircleBrush(HBRUSH hBrush) { circleBrush = hBrush; }	// O 마커 브러쉬 지정
 
 	// 지정된 위치에 마커 작성. 성공 시 true 반환, 실패 시 false 반환
 	bool SetMarker(POINT position, Marker markerType)
 	{
-		if (marker[position.y][position.x] != Marker::NONE) return false;	// 만약 빈칸이 아니라면 false 반환
+		if (marker[position.x][position.y] != Marker::NONE) return false;	// 만약 빈칸이 아니라면 false 반환
 
-		marker[position.y][position.x] = markerType;	// 해당 위치에 마커 작성
+		marker[position.x][position.y] = markerType;	// 해당 위치에 마커 작성
 
 		return true;	// 성공 시 ture 반환
+	}
+
+	void SetTextToBasic() { nowText = basicToolTip; }			// 텍스트를 기본 텍스트로 변경
+	void SetTextToCrossWin() { nowText = crossWinText; }		// 텍스트를 X 승리 텍스트로 변경
+	void SetTextToCircleWin() { nowText = circleWinText; }		// 텍스트를 O 승리 텍스트로 변경
+	void SetTextToDraw() { nowText = drawText; }				// 텍스트를 무승부 텍스트로 변경
+
+	// 승리 체크
+	Marker CheckWinner()
+	{
+		// 가로 체크
+		for (int row = 0; row < 3; row++)
+			if (Marker::NONE != marker[row][0] &&
+				marker[row][0] == marker[row][1] &&
+				marker[row][1] == marker[row][2])
+				return marker[row][2];
+
+		// 세로 체크
+		for (int col = 0; col < 3; col++)
+			if (Marker::NONE != marker[0][col] &&
+				marker[0][col] == marker[1][col] &&
+				marker[1][col] == marker[2][col])
+				return marker[2][col];
+
+		// 우하향 대각선 체크
+		if (Marker::NONE != marker[0][0] &&
+			marker[0][0] == marker[1][1] &&
+			marker[1][1] == marker[2][2])
+			return marker[2][2];
+
+		// 좌하향 대각선 체크
+		if (Marker::NONE != marker[0][2] &&
+			marker[0][2] == marker[1][1] &&
+			marker[1][1] == marker[2][0])
+			return marker[2][0];
+
+		// 승리자 없음
+		return Marker::NONE;
+	}
+
+	// 무승부 체크, 무승부 시 true 반환
+	bool CheckDraw()
+	{
+		for (int row = 0; row < 3; row++)
+		{
+			for (int col = 0; col < 3; col++)
+			{
+				if (marker[row][col] == Marker::NONE)
+					return false;
+			}
+		}
+
+		return true;
+	}
+
+	// 마커 초기화
+	void ResetMarker()
+	{
+		for (int row = 0; row < 3; row++)
+		{
+			for (int col = 0; col < 3; col++)
+			{
+				marker[row][col] = Marker::NONE;
+			}
+		}
 	}
 
 	// 보드 그리기
@@ -251,6 +337,11 @@ public:
 		DrawMarkers(hdc);
 	}
 };
+
+const LPCTSTR Board::basicToolTip = TEXT("이동: 방향키, 입력: 엔터, 종료: ESC");		// 기본 텍스트
+const LPCTSTR Board::crossWinText = TEXT("X가 승리했습니다. 재시작:R, 종료: ESC");		// X 승리 텍스트
+const LPCTSTR Board::circleWinText = TEXT("O가 승리했습니다. 재시작:R, 종료: ESC");		// O 승리 텍스트
+const LPCTSTR Board::drawText = TEXT("무승부입니다. 재시작:R, 종료: ESC");				// 무승부 텍스트
 
 // 커서 정보 저장 및 관리를 위한 클래스
 class Cursor
@@ -357,6 +448,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 	static Cursor cursor(START_POSITION, CELL_SIZE);	// 커서 정보
 
 	static bool isFirstPlayer = true;					// 현재 플레이어 정보
+	static bool isGameOver = false;						// 게임 종료 여부
 
 	switch (iMessage)
 	{
@@ -369,10 +461,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 
 		board.SetCrossPen(greenPen);		// X 마커 펜 지정
 		board.SetCrossBrush(greenBrush);	// X 마커 브러쉬 지정
+
 		board.SetCirclePen(redPen);			// O 마커 펜 지정
 		board.SetCircleBrush(redBrush);		// O 마커 브러쉬 지정
 
-		nowPen = greenPen;		// 초록 플레이어가 선이기 때문에 현재 펜을 초록 펜으로 지정
+		nowPen = redPen;		// 선 플레이어의 펜을 빨간 펜으로 지정
 		return 0;
 
 	case WM_KEYDOWN:
@@ -383,15 +476,60 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 		case VK_RIGHT: cursor.MoveRight(); break;	// 커서 오른쪽으로 이동
 		case VK_DOWN: cursor.MoveDown(); break;		// 커서 아래쪽으로 이동
 		case VK_RETURN:		// Enter 입력 시
+			if (isGameOver) break;	// 게임 종료 시 입력 무시
+
 			if (board.SetMarker(cursor.GetPos(), (isFirstPlayer ? Marker::CROSS : Marker::CIRCLE)))		// 커서 위치에 마커 입력
 			{
 				// 마커 입력 성공 시
 				isFirstPlayer = !isFirstPlayer;					// 유저 변경
-				nowPen = (isFirstPlayer ? greenPen : redPen);	// 펜 변경
+				nowPen = (isFirstPlayer ? redPen : greenPen);	// 펜 변경
 				cursor.ResetPos();								// 커서 위치 초기화
+
+				// 승자 확인
+				switch (board.CheckWinner())
+				{
+				case Marker::CROSS:				// X 승리 시
+					isGameOver = true;			// 게임 종료
+					board.SetTextToCrossWin();	// X 승리 텍스트 출력
+					break;
+				case Marker::CIRCLE:			// O 승리 시
+					isGameOver = true;			// 게임 종료
+					board.SetTextToCircleWin();	// O 승리 텍스트 출력
+					break;
+				}
+
+				// 무승부 확인
+				if (board.CheckDraw())
+				{							// 무승부라면
+					isGameOver = true;		// 게임 종료
+					board.SetTextToDraw();	// 무승부 텍스트 출력
+				}
 			}
 			break;
 		case VK_ESCAPE: DestroyWindow(hWnd); break;	// 게임(프로그램) 종료
+		}
+
+		InvalidateRect(hWnd, NULL, TRUE);
+		return 0;
+
+	case WM_CHAR:
+		switch ((TCHAR)wParam)
+		{
+		case 'R':
+		case 'r':
+			if (isGameOver)	// 게임 오버된 상태에서 R 입력 시
+			{
+				board.ResetMarker();	// 마커 초기화
+				board.SetTextToBasic();	// 텍스트 초기화
+
+				cursor.ResetPos();	// 커서 초기화
+
+				isFirstPlayer = true;	// 시작 플레이어의 턴으로 변경
+				nowPen = redPen;		// 시작 플레이어의 펜으로 변경
+
+				isGameOver = false;	// 게임 오버 상태 해제
+			}
+			break;
 		}
 
 		InvalidateRect(hWnd, NULL, TRUE);
@@ -402,17 +540,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam)
 
 		board.Draw(hdc);	// 보드 그리기
 
-		cursor.Draw(hdc, nowPen);	// 커서 그리기
+		if (!isGameOver)				// 게임이 끝나지 않았다면
+			cursor.Draw(hdc, nowPen);	// 커서 그리기
 
 		EndPaint(hWnd, &ps);
 		return 0;
 
 	case WM_DESTROY:
-		DeleteObject(redPen);
-		DeleteObject(greenPen);
+		DeleteObject(redPen);		// 빨간펜 삭제
+		DeleteObject(greenPen);		// 초록펜 삭제
 
-		DeleteObject(redBrush);
-		DeleteObject(greenBrush);
+		DeleteObject(redBrush);		// 빨간 브러쉬 삭제
+		DeleteObject(greenBrush);	// 초록 브러쉬 삭제
 
 		PostQuitMessage(0);
 		return 0;
